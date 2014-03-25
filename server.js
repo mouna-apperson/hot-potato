@@ -12,13 +12,14 @@ var connections_by_octet = (function(){
 // function for sending the potato to a random peer
 var passee_octet_iterator = Math.floor(Math.random() * 256);
 function pass_the_potato(potato){
+  var data = new Buffer(JSON.stringify(potato), 'utf8');
   for(var i = 1; i !== 257; ++i){
     var attempted_octet = (passee_octet_iterator + i) & 0xFF;
     if(connections_by_octet[attempted_octet]){
       // we found a socket to pass to
       console.log('POTATO PASSED');
       passee_octet_iterator = attempted_octet;
-      connections_by_octet[attempted_octet].write(potato);
+      connections_by_octet[attempted_octet].write(data);
       return;
     }
   }
@@ -38,8 +39,33 @@ function init_socket(socket){
   console.log('Connection established to host ' + LOCAL_NETWORK_PREFIX + octet);
 
   function pass_potato(){
-    console.log('PASSING POTATO FROM ' + octet + ':', data.toString());
-    pass_the_potato(data);
+    data = data.toString();
+    console.log('PASSING POTATO FROM ' + octet + ':', data);
+    data.replace('/ oonst/g', '');
+    data.replace('/ new tater/g', '');
+    var potato = {
+      fixed_by: 'Nick',
+      via: ['Nick']
+    };
+    try {
+      potato = JSON.parse(data);
+      if(!potato.via) potato.via = ['Nick'];
+      else potato.via.push('Nick');
+
+      if(potato.beer){
+        var m = potato.beer.parseInt(10);
+        var bottles_of_beer = m[1];
+        if(bottles_of_beer > 50) potato.beer = (bottles_of_beer) + " Bottles of beer on the wall " + (bottles_of_beer) + " bottles of beer, take 50 down and get really drunk, " + (bottles_of_beer - 50) + " bottles of beer on the wall";
+        else if(bottles_of_beer === 1) potato.beer = "NO MORE BEER!";
+        else potato.beer = (bottles_of_beer) + " Bottles of beer on the wall " + (bottles_of_beer) + " bottles of beer, take one down and pass it around, " + (bottles_of_beer - 1) + " bottles of beer on the wall";
+      }
+      else {
+        potato.beer = "10 Bottles of beer on the wall 10 bottles of beer, take one down and pass it around, 9 bottles of beer on the wall";
+      }
+    }
+    catch(e){
+    }
+    pass_the_potato(potato);
     data = new Buffer(0);
     timeout = null;
   }
@@ -83,6 +109,7 @@ net.createServer(init_socket).listen(LISTEN_PORT, function() {
 // create connections
 function create_missing_connections(){
   for(var octet = 1; octet !== 255; ++octet){
+    if(octet === 96) continue;
     if(!connections_by_octet[octet]){
       net.createConnection(LISTEN_PORT, LOCAL_NETWORK_PREFIX + octet, init_socket_this).on('error', function(){});
     }
@@ -93,6 +120,6 @@ create_missing_connections();
 setInterval(create_missing_connections, 45000);
 
 setTimeout(function(){
-  pass_the_potato(new Buffer("POTATO", 'utf8'));
+  pass_the_potato({from: 'Nick', packet_id: Math.floor(Math.random() * 100000000)});
 }, 1000);
 
